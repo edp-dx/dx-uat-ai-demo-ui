@@ -1,0 +1,55 @@
+{{- if .Values.ingress.enabled -}}
+{{- $fullName := include "uat-ai-demo-ui.fullname" . -}}
+{{- $svcPort := .Values.service.port -}}
+{{- $ingressApiIsStable := eq (include "uat-ai-demo-ui.ingress.isStable" .) "true" -}}
+{{- $ingressSupportsIngressClassName := eq (include "uat-ai-demo-ui.ingress.supportsIngressClassName" .) "true" -}}
+{{- $ingressSupportsPathType := eq (include "uat-ai-demo-ui.ingress.supportsPathType" .) "true" -}}
+{{- $ingressPathType := .Values.ingress.pathType -}}
+kind: Ingress
+apiVersion: {{ include "uat-ai-demo-ui.ingress.apiVersion" . }}
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "uat-ai-demo-ui.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if and $ingressSupportsIngressClassName .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    {{- if .Values.ingress.host }}
+    - host: {{ .Values.ingress.host }}
+    {{else}}
+    - host: {{ $fullName }}-{{ .Release.Namespace}}.{{ .Values.ingress.dnsWildcard}}
+    {{end}}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- if .Values.ingress.host }}
+    - host: {{ .Values.ingress.host }}
+    {{else}}
+    - host: {{ $fullName }}-{{ .Release.Namespace}}.{{ .Values.ingress.dnsWildcard}}
+    {{end}}
+      http:
+        paths:
+          - path: {{ .Values.ingress.path }}
+            {{- if $ingressSupportsPathType }}
+            pathType: {{ $ingressPathType }}
+            {{- end }}
+            backend:
+              {{- if $ingressApiIsStable }}
+              service:
+                name: {{ $fullName }}
+                port: 
+                  number: {{ $svcPort }}
+              {{- else }}
+              serviceName: {{ $fullName }}
+              servicePort: {{ $svcPort }}
+              {{- end }}
+  {{- end }}

@@ -1,0 +1,1 @@
+1. Application uat-ai-demo-ui has been successfully deployed!!
