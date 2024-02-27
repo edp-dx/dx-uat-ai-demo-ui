@@ -1,0 +1,32 @@
+name: Auto approve
+
+on: 
+  pull_request_target:
+  issue_comment:
+    types: [created]
+
+jobs:
+  auto-approve-pr:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+      - uses: hmarr/auto-approve-action@v4
+        with:
+          github-token: "${{ github.token }}"
+      - name: Add label
+        run: gh pr edit ${{ github.event.pull_request.number }} --add-label automerge
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - uses: pascalgn/automerge-action@v0.16.2
+        env:
+          GITHUB_TOKEN: "${{ github.token }}"
+          MERGE_LABELS: "automerge"
+          MERGE_RETRIES: "60"
+          MERGE_RETRY_SLEEP: "10000"
+          MERGE_METHOD: "squash"
+          MERGE_DELETE_BRANCH: "true"
+          MERGE_COMMIT_MESSAGE: "{pullRequest.title} \n\n workflowId: {pullRequest.head.ref}"
